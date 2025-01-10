@@ -1,0 +1,23 @@
+[project]
+name = "rag_assistant"
+version = "0.1.0"
+description = "rag_assistant using crewAI"
+authors = [
+    { name = "Your Name", email = "you@example.com" }
+]
+requires-python = ">=3.10,<=3.13"
+dependencies = [
+    "crewai[tools]>=0.86.0,<1.0.0",
+    "gitpython==3.1.38",
+    "ollama>=0.4.5",
+    "pygithub==1.59.1",
+    "click>=8.0.0",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+rag = "rag_assistant.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

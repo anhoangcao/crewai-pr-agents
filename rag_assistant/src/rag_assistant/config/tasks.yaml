@@ -1,0 +1,19 @@
+research_task:
+  description: >
+    Research and analyze GitHub Pull Requests related to {topic}. 
+    Identify the purpose, key changes, and potential impacts of the PRs.
+  expected_output: >
+    A list with 10 bullet points summarizing the most relevant and impactful 
+    details from the GitHub Pull Requests about {topic}.
+  agent: researcher
+
+reporting_task:
+  description: >
+    Review the context and findings about the GitHub Pull Requests and 
+    expand each point into a detailed section. 
+    Highlight key changes, potential impacts, and recommendations for improvement or follow-up.
+  expected_output: >
+    A fully detailed report in markdown format, structured with main topics 
+    and subtopics. Each section should provide a thorough analysis of 
+    the Pull Requests, including their significance and actionable recommendations.
+  agent: reporting_analyst
