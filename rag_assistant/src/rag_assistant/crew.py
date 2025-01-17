@@ -1,13 +1,15 @@
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
-from crewai_tools import GithubSearchTool
-from github import Github
+from github import Github, Auth
 import os
-from dotenv import load_dotenv
 import re
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+print(f"Loaded LLM_MODEL: {os.getenv('LLM_MODEL')}")
+print(f"Loaded API Key: {os.getenv('OPEN_WEBUI_API_KEY')}")
 
 @CrewBase
 class RagAssistant:
@@ -20,31 +22,19 @@ class RagAssistant:
         self.github_token = os.getenv('GITHUB_TOKEN')
         if not self.github_token:
             raise ValueError("GITHUB_TOKEN environment variable is required")
+            
+        # Initialize Github with Auth token
+        self.github = Github(auth=Auth.Token(self.github_token))
+        
+        # Get LLM configuration from environment variables
+        self.llm_model = os.getenv('LLM_MODEL')
+        self.llm_base_url = os.getenv('OPEN_WEBUI_URL')
+        self.api_key = os.getenv('OPEN_WEBUI_API_KEY')
+        if not self.llm_model or not self.llm_base_url or not self.api_key:
+            raise ValueError("LLM_MODEL, OPEN_WEBUI_URL, and OPEN_WEBUI_API_KEY environment variables are required")
+            
         self.github_url = github_url
         self.content_types = content_types
-        self.github = Github(self.github_token)
-
-    def create_github_tool(self):
-        """Create a GitHub search tool."""
-        return GithubSearchTool(
-            github_repo=self.github_url,
-            gh_token=self.github_token,
-            content_types=self.content_types,
-            config=dict(
-                llm=dict(
-                    provider="ollama",
-                    config=dict(
-                        model="llama2",
-                    ),
-                ),
-                embedder=dict(
-                    provider="ollama",
-                    config=dict(
-                        model="deepseek-coder",
-                    ),
-                )
-            )
-        )
 
     def extract_pr_info(self, pr_url):
         """Extract owner, repo, and PR number from GitHub PR URL."""
@@ -98,7 +88,12 @@ class RagAssistant:
                 You understand code changes, commit patterns, and can provide detailed 
                 yet concise descriptions of changes.""",
                 verbose=True,
-                llm=LLM(model="ollama/llama2", base_url="http://localhost:11434")
+                llm=LLM(
+                    model=self.llm_model, 
+                    provider="ollama",
+                    base_url=self.llm_base_url,
+                    headers={"Authorization": f"Bearer {self.api_key}"}
+                )
             )
 
             # Create analysis task
@@ -154,14 +149,13 @@ class RagAssistant:
             print(f"Full error traceback:")
             print(traceback.format_exc())
             raise Exception(f"Error analyzing Pull Request: {str(e)}")
-
+        
     @agent
     def researcher(self) -> Agent:
         return Agent(
             config=self.agents_config['researcher'],
             verbose=True,
-            llm=LLM(model="ollama/llama2", base_url="http://localhost:11434"),
-            tools=[self.create_github_tool()]
+            llm=LLM(model=self.llm_model, base_url=self.llm_base_url)
         )
 
     @agent
@@ -169,7 +163,7 @@ class RagAssistant:
         return Agent(
             config=self.agents_config['reporting_analyst'],
             verbose=True,
-            llm=LLM(model="ollama/llama2", base_url="http://localhost:11434")
+            llm=LLM(model=self.llm_model, base_url=self.llm_base_url)
         )
 
     @task
